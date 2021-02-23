@@ -23,14 +23,22 @@
 * переписал программу на основе старой, 
 * сократил строк на 200. Упростил выбор типа задачи со стороны юзера,
 * разбил этапы ввода, расчета и вывода на различные процедуры и функции
-* }
+*
+* UPD4:
+* добавил расчет наращения по сложным % m раз в год
+* чуть поправил вывод инфы в файл, теперь в ответе есть слово рубль
+* ДОБАВИЛ ВЫЧИСЛЕНИЕ n!
+* теперь нужно фиксить проблемы с перехватом исключений, а то тут какая-то
+* билеберда полная! а то программа может тупо сломаться в самый неожиданный
+* момент
+}
 
 program math_econ_percents_linux.pas;	
 
 uses math;
 
 var typeOfTask:string;
-S,P,i,n,d,a,b: real;
+S,P,i,n,d,a,b,m: real;
 outputResult:text;
 
 {ПРИВЕТСТВИЕ И ИНСТРУКЦИИ}
@@ -41,6 +49,7 @@ begin
 	writeln('пн — наращение по простым % ставкам');
 	writeln('сно — наращение по сложным % ставкам, общий метод');
 	writeln('снс — наращение по сложным % ставкам, смешанный метод');
+	writeln('снн - наращение по сложным % ставкам m раз в год');
 	writeln('пдм — дисконтирование по сложным % ставкам, математическое',
 	' дисконтирование');
 	writeln('пдб — дисконтирование по сложным % ставкам, банковский учет', 
@@ -66,8 +75,9 @@ begin
 		end;
 	end;
 	{$I+}
-	if (anwser='пн') or (anwser='сно') or (anwser='снс') or (anwser='пдм')
-	or (anwser='пдб') or (anwser='сдм') or (anwser='сдб') then begin
+	if (anwser='пн') or (anwser='сно') or (anwser='снс') or (anwser='снн')
+	or (anwser='пдм') or (anwser='пдб') or (anwser='сдм') 
+	or (anwser='сдб') then begin
 		enter:=true;
 	end
 	else begin
@@ -75,9 +85,9 @@ begin
 			while not enter do begin
 				writeln('Неверный ответ! Попробуйте еще раз.');
 				readln(anwser);
-			if (anwser='пн') or (anwser='сно') or (anwser='снс') or
-			(anwser='пдм') or (anwser='пдб') or (anwser='сдм')
-			or (anwser='сдб') then begin
+			if (anwser='пн') or (anwser='сно') or (anwser='снс')
+			or (anwser='снн') or (anwser='пдм') or (anwser='пдб') 
+			or (anwser='сдм') or (anwser='сдб') then begin
 				enter:=true;
 			end;
 		end;
@@ -85,6 +95,65 @@ begin
 end;
 
 {ВВОД ЮЗЕРОМ ДАННЫХ ДЛЯ РАСЧЕТОВ}
+
+function findYears():real;
+var response, percentType:string;
+aboba,dabdab:integer;
+days, base:real; 
+enter,yep:boolean;
+begin
+	{ищем здесь n}
+	writeln('Вам известен точный срок в годах? (да/нет)');
+	readln(response);
+	if response='да' then begin
+		writeln('Введите значение n:');
+		readln(base); {лень было создавать еще 1 переменную, 1 фиг иначе 
+		бы не воспользовался ей}
+		findYears:=base;
+	end
+	else if response='нет' then begin
+		writeln('-----------------------------------------');
+		writeln('Какой вариант расчета срока используется?');
+		writeln('тт - точные % с точным числом дней');
+		writeln('от - обыкновенные % с точным числом дней');
+		writeln('оп - обыкновенные % с приближенным числом дней');
+		readln(percentType);
+		if percentType='оп' then begin
+			writeln('Введите значение t:');
+			readln(aboba);
+			dabdab:=aboba mod 10;
+			if dabdab>=5 then yep:=true
+			else yep:=false;
+			days:=aboba;
+			days:=days/10;
+			aboba:=trunc(days);
+			days:=aboba*10;
+			if yep=true then days:=days+5;
+			base:=360;
+		end
+		else if percentType='от' then begin
+			writeln('Введите значение t:');
+			readln(days);
+			base:=360;
+		end
+		else if percentType='тт' then begin
+			writeln('Введите значение t:');
+			readln(days);
+			base:=365;
+		end;
+		findYears:=days/base;
+	end
+	else begin
+		enter:=false;
+		while not enter do begin
+			writeln('Неверный ответ! Попробуйте еще раз.');
+			readln(response); 
+			if (response='да') or (response='нет') then begin
+				enter:=true;
+			end;
+		end;	
+	end;
+end;
 
 procedure inputRaising (var summ, percents, years:real);
 begin
@@ -94,8 +163,7 @@ begin
 	writeln('Введите значение i:');
 	readln(percents);
 	percents:=percents/100;
-	writeln('Введите значение n:');
-	readln(years);
+	years:=findYears;
 end;
 
 procedure inputDiscontMath (var result, percents, years:real);
@@ -106,8 +174,7 @@ begin
 	writeln('Введите значение i:');
 	readln(percents);
 	percents:=percents/100;
-	writeln('Введите значение n:');
-	readln(years);
+	years:=findYears;
 end;
 
 procedure inputRaisingMixed (var summ, percents, years, days:real);
@@ -125,6 +192,19 @@ begin
 	days:=days/365;
 end;
 
+procedure inputRaisingFew (var summ, percents, years, timesAYear: real);
+begin
+	writeln('-----------------------------');
+	writeln('Введите значение P:');
+	readln(summ);
+	writeln('Введите значение i:');
+	readln(percents);
+	percents:=percents/100;
+	years:=findYears;
+	writeln('Введите значение m:');
+	readln(timesAYear);
+end;
+
 procedure inputDiscontBank (var result, percents, years:real);
 begin
 	writeln('-----------------------------');
@@ -133,8 +213,7 @@ begin
 	writeln('Введите значение d');
 	readln(percents);
 	percents:=percents/100;
-	writeln('Введите значение n');
-	readln(years);
+	years:=findYears;
 end;
 
 {РАСЧЕТ ПО ФОРМУЛАМ}
@@ -164,6 +243,15 @@ begin
 	raisingMixed:=summ*power((1+percents),years)*(1+percents*days);
 end;
 
+function raisingFew (summ, percents, years, timesAYear:real):real;
+var x,y,z:real;
+begin
+	x:=1+percents/timesAYear;
+	y:=years*timesAYear;
+	z:=x**y;
+	raisingFew:=summ*z;
+end;
+
 function discontCompoundMath(result, percents,years:real):real;
 begin
 	discontCompoundMath:=result/(power(1+percents,years));
@@ -188,7 +276,7 @@ begin
 		writeln(outputResult, '-----------------------------');
 		writeln(outputResult, 'S=?');
 		writeln(outputResult, '-----------------------------');
-		writeln(outputResult, 'S=',S:0:4);
+		writeln(outputResult, 'S=',S:0:4, ' рублей(ь/я)');
 		close(outputResult);
 	{$I+}
 	writeln('-----------------------------');
@@ -209,7 +297,7 @@ begin
 		writeln(outputResult, '-----------------------------');
 		writeln(outputResult, 'P=?');
 		writeln(outputResult, '-----------------------------');
-		writeln(outputResult, 'P=',P:0:4);
+		writeln(outputResult, 'P=',P:0:4, ' рублей(ь/я)');
 		close(outputResult);
 	{$I+}
 	writeln('-----------------------------');
@@ -230,7 +318,7 @@ begin
 		writeln(outputResult, '-----------------------------');
 		writeln(outputResult, 'P=?');
 		writeln(outputResult, '-----------------------------');
-		writeln(outputResult, 'P=',P:0:4);
+		writeln(outputResult, 'P=',P:0:4, ' рублей(ь/я)');
 		close(outputResult);
 	{$I+}
 	writeln('-----------------------------');
@@ -252,11 +340,33 @@ begin
 		writeln(outputResult, '-----------------------------');
 		writeln(outputResult, 'S=?');
 		writeln(outputResult, '-----------------------------');
-		writeln(outputResult, 'S=',S:0:4);
+		writeln(outputResult, 'S=',S:0:4, ' рублей(ь/я)');
 		close(outputResult);
 	{$I+}
 	writeln('-----------------------------');
 	writeln('S=',S:0:4);
+	writeln('-----------------------------');
+	writeln('Результаты работы программы были занесены в файл output.txt');
+end;
+
+procedure outputRaisingFew;
+begin
+	{вывод наращения в файл}
+	{$I-}
+		assign(outputResult, 'output.txt');
+		rewrite(outputResult);
+		writeln(outputResult, 'P=',P:0:4, ' рублей(ь/я)');
+		writeln(outputResult, 'n=',n:0:4, ' год(а)/лет');
+		writeln(outputResult, 'm=',m:0:0, ' раз(а) в год');
+		writeln(outputResult, 'i=',i*100:0:4, '%');
+		writeln(outputResult, '-----------------------------');
+		writeln(outputResult, 'S=?');
+		writeln(outputResult, '-----------------------------');
+		writeln(outputResult, 'S=',S:0:4, ' рублей(ь/я)');
+		close(outputResult);
+	{$I+}
+	writeln('-----------------------------');
+	writeln('S=',S:0:4, ' рублей(ь/я)');
 	writeln('-----------------------------');
 	writeln('Результаты работы программы были занесены в файл output.txt');
 end;
@@ -294,6 +404,11 @@ BEGIN
 		S:=raisingMixed(P,i,a,b);
 		outputRaisingMixed; 
 	end;
+	if (typeOfTask='снн') then begin
+		inputRaisingFew(P,i,n,m);
+		S:=raisingFew(P,i,n,m);
+		outputRaisingFew
+	end;
 	if (typeOfTask='сдм') then begin
 		inputDiscontMath(S, i, n); 
 		P:=discontCompoundMath(S,i,n);
@@ -305,3 +420,4 @@ BEGIN
 		outputDiscontBank;
 	end;
 END.
+
